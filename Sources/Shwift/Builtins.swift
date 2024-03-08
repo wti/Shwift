@@ -105,7 +105,7 @@ extension Builtin {
                   at: buffer.readerIndex,
                   length: buffer.readableBytes)!
                 var substring = readString[readString.startIndex...]
-                while let lineBreak = substring.firstIndex(of: "\n") {
+                while let lineBreak = substring.firstIndex(of: delimiter) {
                   let line = substring[substring.startIndex..<lineBreak]
                   substring = substring[substring.index(after: lineBreak)...]
                   continuation.yield(remainder + String(line))
@@ -125,10 +125,16 @@ extension Builtin {
         return AsyncIterator(iterator: stream.makeAsyncIterator())
       }
 
+      public let delimiter: Character
       fileprivate let byteBuffers: ByteBuffers
+
     }
     public var lines: Lines {
-      Lines(byteBuffers: byteBuffers)
+      Lines(delimiter: "\n", byteBuffers: byteBuffers)
+    }
+
+    public func chunks(_ delimiter: Character) -> Lines {
+      Lines(delimiter: delimiter, byteBuffers: byteBuffers)
     }
 
     typealias ByteBuffers = AsyncCompactMapSequence<
