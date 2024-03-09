@@ -27,13 +27,14 @@ public func compactMap(transform: @Sendable @escaping (String) async throws -> S
 }
 
 public func reduce<T>(
+  splitAt: Character = "\n",
   into initialResult: T,
   _ updateAccumulatingResult: @escaping (inout T, String) async throws -> Void
 ) -> Shell.PipableCommand<T> {
   Shell.PipableCommand {
     try await Shell.invoke { _, invocation in
       try await invocation.builtin { channel in
-        try await channel.input.lines.reduce(into: initialResult, updateAccumulatingResult)
+        try await channel.input.chunks(splitAt).reduce(into: initialResult, updateAccumulatingResult)
       }
     }
   }
