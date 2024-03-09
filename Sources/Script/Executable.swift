@@ -63,19 +63,23 @@ public struct Executable {
     try await callAsFunction(arguments: arguments)
   }
 
-  public func callAsFunction(arguments: [String?]) async throws {
+  public func callAsFunction(
+    cwd: FilePath? = nil,
+    arguments: [String?]
+  ) async throws {
     try await Shell.invoke { shell, invocation in
       struct Logger: ProcessLogger {
         let executable: Executable
         let arguments: [String]
         let shell: Shell
+        let cwd: FilePath
 
         func failedToLaunchProcess(dueTo error: Error) {
           Shell.scriptForLogging
             .didFailToLaunch(
               executable,
               withArguments: arguments,
-              in: shell.workingDirectory,
+              in: cwd,
               dueTo: error)
         }
 
@@ -85,7 +89,7 @@ public struct Executable {
               withID: process.id,
               didLaunchWith: executable,
               arguments: arguments,
-              in: shell.workingDirectory)
+              in: cwd)
         }
 
         func willWait(on process: Process) {
@@ -98,7 +102,7 @@ public struct Executable {
               withID: process.id,
               for: executable,
               withArguments: arguments,
-              in: shell.workingDirectory,
+              in: cwd,
               didComplete: error)
         }
       }
@@ -106,21 +110,23 @@ public struct Executable {
        - note: In shell scripts, specifying an environment variable which is not defined as an argument effectively skips that argument. For instance `echo Foo $NOT_DEFINED Bar` would be analogous to `echo Foo  Bar`. We mirror this behavior in Script by allowing arguments to be `nil`.
        */
       let arguments = arguments.compactMap { $0 }
+      let workingDir = cwd ?? shell.workingDirectory
+      let logger = Logger(executable: self, arguments: arguments, shell: shell, cwd: workingDir)
       Shell.scriptForLogging
         .willLaunch(
           self,
           withArguments: arguments,
-          in: shell.workingDirectory)
+          in: workingDir)
       try await Process.run(
         executablePath: path,
         arguments: arguments.compactMap { $0 },
         environment: shell.environment,
-        workingDirectory: shell.workingDirectory,
+        workingDirectory: workingDir,
         fileDescriptorMapping: .init(
           standardInput: invocation.standardInput,
           standardOutput: invocation.standardOutput,
           standardError: invocation.standardError),
-        logger: Logger(executable: self, arguments: arguments, shell: shell),
+        logger: logger,
         in: invocation.context)
 
     }
