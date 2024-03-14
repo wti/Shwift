@@ -91,9 +91,9 @@ final class ShwiftCoreTests: XCTestCase {
       of: { context, output in
         try await Builtin.read(from: FilePath(Self.chunkFilePath), to: output, in: context)
       },
-      is: "1 != 2 != 3",
+      is: "|?|?1|?2\n3|?4|?|?", // `;;1;2\n3;4;;;` (nb: join not terminal)
       afterSplittingWith: ";",
-      andJoiningWith: " != "
+      andJoiningWith: "|?"
     )
   }
 
@@ -165,7 +165,7 @@ final class ShwiftCoreTests: XCTestCase {
   }
 
   private static let supportFilePath = Bundle.module.path(forResource: "Cat", ofType: "txt")!
-  private static let chunkFilePath = Bundle.module.path(forResource: "Chunks", ofType: "txt")!
+  private static let chunkFilePath = Bundle.module.path(forResource: "Chunks", ofType: "bin")!
 }
 
 private extension Shwift.Process {
