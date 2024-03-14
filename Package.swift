@@ -46,7 +46,7 @@ let package = Package(
       dependencies: ["Shwift"],
       resources: [
         .copy("Cat.txt"),
-        .copy("Chunks.txt")
+        .copy("Chunks.bin")
       ]),
   ]
 )
