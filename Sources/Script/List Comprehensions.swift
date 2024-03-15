@@ -5,23 +5,25 @@ import Shwift
  */
 
 public func map(
-  splitAt char: Character = "\n",
+  inputSeparator: Character = "\n",
+  outputSeparator: String = "\n",
   transform: @Sendable @escaping (String) async throws -> String
 ) -> Shell.PipableCommand<Void> {
-  compactMap(splitAt: char, transform: transform)
+  compactMap(inputSeparator: inputSeparator, outputSeparator: outputSeparator, transform: transform)
 }
 
 public func compactMap(
-  splitAt char: Character = "\n",
+  inputSeparator: Character = "\n",
+  outputSeparator: String = "\n",
   transform: @Sendable @escaping (String) async throws -> String?
 ) -> Shell.PipableCommand<Void>
 {
   Shell.PipableCommand {
     try await Shell.invoke { shell, invocation in
       try await invocation.builtin { channel in
-        for try await line in channel.input.chunks(char).compactMap(transform) {
+        for try await line in channel.input.chunks(inputSeparator).compactMap(transform) {
           try await channel.output.withTextOutputStream { stream in
-            print(line, to: &stream)
+            print(line, terminator: outputSeparator, to: &stream)
           }
         }
       }
@@ -30,7 +32,7 @@ public func compactMap(
 }
 
 public func reduce<T>(
-  splitAt: Character = "\n",
+  inputSeparator: Character = "\n",
   into initialResult: T,
   _ updateAccumulatingResult: @escaping (inout T, String) async throws -> Void
 ) -> Shell.PipableCommand<T> {
@@ -38,21 +40,21 @@ public func reduce<T>(
     try await Shell.invoke { _, invocation in
       try await invocation.builtin { channel in
         try await channel.input
-          .chunks(splitAt).reduce(into: initialResult, updateAccumulatingResult)
+          .chunks(inputSeparator).reduce(into: initialResult, updateAccumulatingResult)
       }
     }
   }
 }
 
 public func reduce<T>(
-  splitAt: Character = "\n",
+  inputSeparator: Character = "\n",
   _ initialResult: T,
   _ nextPartialResult: @escaping (T, String) async throws -> T
 ) -> Shell.PipableCommand<T> {
   Shell.PipableCommand {
     try await Shell.invoke { _, invocation in
       try await invocation.builtin { channel in
-        try await channel.input.chunks(splitAt)
+        try await channel.input.chunks(inputSeparator)
           .reduce(initialResult, nextPartialResult)
       }
     }
