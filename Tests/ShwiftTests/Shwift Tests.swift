@@ -91,7 +91,7 @@ final class ShwiftCoreTests: XCTestCase {
       of: { context, output in
         try await Builtin.read(from: FilePath(Self.chunkFilePath), to: output, in: context)
       },
-      is: "|?|?1|?2\n3|?4|?|?", // `;;1;2\n3;4;;;` (nb: join not terminal)
+      is: "|?|?1|?2\n3|?4|?|?",  // `;;1;2\n3;4;;;` (nb: join not terminal)
       afterSplittingWith: ";",
       andJoiningWith: "|?"
     )
