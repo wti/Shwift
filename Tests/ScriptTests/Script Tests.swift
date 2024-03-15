@@ -4,40 +4,45 @@ import Script
 final class ScriptCoreTests: XCTestCase {
 
   /// Verify `reduce` chunks input by splitAt delimiter (and handles non-string output)
-  func testReduceChunked() async throws {
-    typealias SF = ChunkFixtures
-    let result = SF.Result<SF.Ints>() // reference type
-    let exp: [SF.Ints] = [.i(1), .pair(2, 3), .i(4), .err("not")]
+  func testReduceInoutChunked() async throws {
+    let result = CF.Result<CF.Ints>()  // reference type
     try runInScript {
       let sep: Character = ";"
 
       // inout, here using class
-      try await echo("1", "2\n3", "4", "not",
-                     separator: "\(sep)", terminator: "")
+      try await echo(
+        "1", "2\n3", "4", "not",
+        separator: "\(sep)", terminator: "")
         | reduce(splitAt: sep, into: result) { $0.add(.make($1)) }
-      XCTAssertEqual(exp, result.result, "Reduce (inside)")
-
-      // returning value each time
-      let array: [SF.Ints]
-        = try await echo("1", "2\n3", "4", "not",
-                     separator: "\(sep)", terminator: "")
-          | reduce(splitAt: sep, []) { r, s in r + [SF.Ints.make(s)] }
-      XCTAssertEqual(exp, array, "Reduce (arrays)")
+      XCTAssertEqual(CF.Ints.exp1234e, result.result, "Reduce (inside)")
     }
-    XCTAssertEqual(exp, result.result, "Reduce (outside)")
+    XCTAssertEqual(CF.Ints.exp1234e, result.result, "Reduce (outside)")
+  }
+
+  /// Verify `reduce` chunks input by splitAt delimiter (and handles non-string output)
+  func testReduceOutputChunked() async throws {
+    try runInScript {
+      let sep: Character = ";"
+
+      let array: [CF.Ints] =
+        try await echo(
+          "1", "2\n3", "4", "not",
+          separator: "\(sep)", terminator: "")
+        | reduce(splitAt: sep, []) { r, s in r + [CF.Ints.make(s)] }
+      XCTAssertEqual(CF.Ints.exp1234e, array, "Reduce (arrays)")
+    }
   }
 
   /// Verify `map` chunks input by splitAt delimiter
   func testMapChunked() async throws {
-    typealias SF = ChunkFixtures
-    let mapped: [SF.Ints] = [.i(1), .pair(2, 3), .i(4), .err("not")]
-    let expect = mapped.map{ $0.double() }.joined(separator: "\n")
+    let expect = CF.Ints.exp1234e.map { $0.double() }.joined(separator: "\n")
     try runInScript {
       let sep: Character = ";"
       let result = try await outputOf {
-        try await echo("1", "2\n3", "4", "not",
-                       separator: "\(sep)", terminator: "")
-        | map(splitAt: sep) { SF.Ints.make($0).double() }
+        try await echo(
+          "1", "2\n3", "4", "not",
+          separator: "\(sep)", terminator: "")
+          | map(splitAt: sep) { CF.Ints.make($0).double() }
       }
       XCTAssertEqual(expect, result, "Map")
     }
@@ -45,22 +50,22 @@ final class ScriptCoreTests: XCTestCase {
 
   /// Verify `compactMap` chunks input by splitAt delimiter
   func testCompactMapChunked() async throws {
-    typealias SF = ChunkFixtures
-    let all: [SF.Ints] = [.i(1), .pair(2, 3), .i(4), .err("not")]
-    let evens = all.compactMap{ $0.anyEven() }.joined(separator: "\n")
+    let all: [CF.Ints] = [.i(1), .pair(2, 3), .i(4), .err("not")]
+    let evens = all.compactMap { $0.anyEven() }.joined(separator: "\n")
     try runInScript {
       let sep: Character = ";"
       let result = try await outputOf {
-        try await echo("1", "2\n3", "4", "not",
-                       separator: "\(sep)", terminator: "")
-        | compactMap(splitAt: sep) { SF.Ints.make($0).anyEven() }
+        try await echo(
+          "1", "2\n3", "4", "not",
+          separator: "\(sep)", terminator: "")
+          | compactMap(splitAt: sep) { CF.Ints.make($0).anyEven() }
       }
       XCTAssertEqual(evens, result, "Map")
     }
   }
 
   func runInScript(
-    _ op: @escaping () async throws-> Void,
+    _ op: @escaping () async throws -> Void,
     caller: StaticString = #function,
     callerLine: UInt = #line
   ) throws {
@@ -82,13 +87,14 @@ final class ScriptCoreTests: XCTestCase {
       try await op?()
     }
     // Codable
-    init() { }
+    init() {}
     var i = 0
     private enum CodingKeys: String, CodingKey {
       case i
     }
   }
 
+  private typealias CF = ChunkFixtures
   private enum ChunkFixtures {
     class Result<T> {
       var result = [T]()
@@ -98,6 +104,8 @@ final class ScriptCoreTests: XCTestCase {
     }
     enum Ints: Codable, Equatable {
       case i(Int), pair(Int, Int), err(String)
+
+      static let exp1234e: [Ints] = [.i(1), .pair(2, 3), .i(4), .err("not")]
 
       static func make(_ s: String) -> Ints {
         let nums = s.split(separator: "\n")
@@ -122,7 +130,7 @@ final class ScriptCoreTests: XCTestCase {
 
       func anyEven() -> String? {
         func anyEvens(_ i: Int...) -> Bool {
-          nil != i.first { 0 == $0 % 2}
+          nil != i.first { 0 == $0 % 2 }
         }
         switch self {
         case .i(let n): return anyEvens(n) ? "\(n)" : nil
