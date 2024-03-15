@@ -63,6 +63,84 @@ final class ScriptCoreTests: XCTestCase {
       XCTAssertEqual(evens, result, "Map")
     }
   }
+  
+  /// Verify `outputOf` applies explicit separator
+  func testOutputSeparator() async throws {
+    try runInScript {
+      let result = try await outputOf(outputSeparator: "|") {
+        try await echo("1", "2", "3", terminator: "")
+        | map(inputSeparator: " ") { $0 }
+      }
+      XCTAssertEqual("1|2|3", result, "outputOf")
+    }
+
+    // Urk: echo newline dropped
+    try runInScript {
+      let result = try await outputOf(outputSeparator: "|") {
+        try await echo("1", "2", "3")
+        | map(inputSeparator: " ") { $0 }
+      }
+      // expecting `|3\n`, not `|3|`?
+      let correct = "1|2|3\n|"
+      let actual = "1|2|3|"
+      XCTAssertEqual(actual, result, "outputOf-actual")
+      XCTAssertEqual(correct, result, "outputOf-correct")
+    }
+
+    // Urk: lose initial value when map has output separator??
+    try runInScript {
+      let result = try await outputOf(outputSeparator: "|") {
+        try await echo("1", "2", "3")
+        // when map has output separator, first item dropped?
+        | map(inputSeparator: " ", outputSeparator: "?") { $0 }
+      }
+      let correct = "1?2?3\n?`"
+      let actual = "2?3|?"
+      XCTAssertEqual(actual, result, "outputOf-actual")
+      XCTAssertEqual(correct, result, "outputOf-correct")
+    }
+  }
+  
+  func testEcho() async throws {
+    let tests: [(exp: String, term: String, items: [String])] = [
+      ("1", "", ["1"]),
+      ("1|", "|", ["1"]),
+      ("1 2", "", ["1", "2"]),
+      ("1 2|", "|", ["1", "2"]),
+    ]
+    for (exp, term, items) in tests {
+      try runInScript {
+        let result = try await outputOf() {
+          if 1 == items.count {
+            try await echo(items[0], terminator: term)
+          } else {
+            try await echo(items[0], items[1], terminator: term)
+          }
+        }
+        XCTAssertEqual(exp, result, "echo term=\(term), items=\(items)")
+      }
+    }
+  }
+
+  func testMapOutputSeparator() async throws {
+    try runInScript {
+      let result = try await outputOf(inputSeparator: " ", outputSeparator: "|") {
+        try await echo("1", "2", "3")
+        | map(inputSeparator: " ", outputSeparator: "Once") { $0 }
+      }
+      XCTAssertEqual("1|2|3Once", result, "outputOf")
+    }
+  }
+
+  /// Verify `outputOf` applies explicit separator
+  func testOutput() async throws {
+    try runInScript {
+      let result = try await outputOf(outputSeparator: "?") {
+        try await echo("1", "2", "3", separator: ";", terminator: "|")
+      }
+      XCTAssertEqual("1;2;3|", result, "outputOf")
+    }
+  }
 
   func runInScript(
     _ op: @escaping () async throws -> Void,
