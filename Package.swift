@@ -48,5 +48,9 @@ let package = Package(
         .copy("Cat.txt"),
         .copy("Chunks.bin")
       ]),
+    .testTarget(
+      name: "ScriptTests",
+      dependencies: ["Script"]
+      ),
   ]
 )
