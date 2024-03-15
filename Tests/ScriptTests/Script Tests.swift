@@ -13,7 +13,7 @@ final class ScriptCoreTests: XCTestCase {
       try await echo(
         "1", "2\n3", "4", "not",
         separator: "\(sep)", terminator: "")
-        | reduce(splitAt: sep, into: result) { $0.add(.make($1)) }
+        | reduce(inputSeparator: sep, into: result) { $0.add(.make($1)) }
       XCTAssertEqual(CF.Ints.exp1234e, result.result, "Reduce (inside)")
     }
     XCTAssertEqual(CF.Ints.exp1234e, result.result, "Reduce (outside)")
@@ -28,7 +28,7 @@ final class ScriptCoreTests: XCTestCase {
         try await echo(
           "1", "2\n3", "4", "not",
           separator: "\(sep)", terminator: "")
-        | reduce(splitAt: sep, []) { r, s in r + [CF.Ints.make(s)] }
+        | reduce(inputSeparator: sep, []) { r, s in r + [CF.Ints.make(s)] }
       XCTAssertEqual(CF.Ints.exp1234e, array, "Reduce (arrays)")
     }
   }
@@ -42,7 +42,7 @@ final class ScriptCoreTests: XCTestCase {
         try await echo(
           "1", "2\n3", "4", "not",
           separator: "\(sep)", terminator: "")
-          | map(splitAt: sep) { CF.Ints.make($0).double() }
+          | map(inputSeparator: sep) { CF.Ints.make($0).double() }
       }
       XCTAssertEqual(expect, result, "Map")
     }
@@ -58,7 +58,7 @@ final class ScriptCoreTests: XCTestCase {
         try await echo(
           "1", "2\n3", "4", "not",
           separator: "\(sep)", terminator: "")
-          | compactMap(splitAt: sep) { CF.Ints.make($0).anyEven() }
+          | compactMap(inputSeparator: sep) { CF.Ints.make($0).anyEven() }
       }
       XCTAssertEqual(evens, result, "Map")
     }
@@ -70,8 +70,8 @@ final class ScriptCoreTests: XCTestCase {
     callerLine: UInt = #line
   ) throws {
     let e = expectation(description: "\(caller):\(callerLine)")
+    defer { wait(for: [e], timeout: 2) }
     try RunInScriptProxy(op, e).run()
-    wait(for: [e], timeout: 2)
   }
 
   private struct RunInScriptProxy: Script, Codable {
