@@ -100,7 +100,7 @@ extension Builtin {
       }
 
       fileprivate init(byteBuffers: ByteBuffers) {
-        segments = Segments(byteBuffers: byteBuffers, delimiter: "\n")
+        segments = Segments(byteBuffers: byteBuffers, separator: "\n")
       }
       private let segments: Segments
     }
@@ -124,13 +124,13 @@ extension Builtin {
                   at: buffer.readerIndex,
                   length: buffer.readableBytes)!
                 var substring = readString[readString.startIndex...]
-                while let lineBreak = substring.firstIndex(of: delimiter) {
-                  let line = substring[substring.startIndex..<lineBreak]
-                  substring = substring[substring.index(after: lineBreak)...]
-                  continuation.yield(remainder + String(line))
+                while let separatorRange = substring.range(of: separator) {
+                  let segment = substring[substring.startIndex..<separatorRange.lowerBound]
+                  substring = substring[separatorRange.upperBound...]
+                  continuation.yield(remainder + String(segment))
                   remainder = ""
                 }
-                remainder = String(substring)
+                remainder += String(substring)
               }
               if !remainder.isEmpty {
                 continuation.yield(String(remainder))
@@ -145,7 +145,7 @@ extension Builtin {
       }
 
       fileprivate let byteBuffers: ByteBuffers
-      fileprivate let delimiter: Character
+      fileprivate let separator: String
     }
 
     /// Make a Lines iterator splitting at newlines
@@ -153,14 +153,22 @@ extension Builtin {
       Lines(byteBuffers: byteBuffers)
     }
 
-    /// Make a Lines iterator yielding text segments between delimiters (like split).
+    /// Segment this input using a separator.
     ///
-    /// - Parameter delimiter: Character separating input text to yield (and not itself yielded)  Defaults to newline.
-    /// - Returns: Lines segmented by delimiter
-    public func segments(separatedBy delimiter: Character) -> Segments {
-      Segments(byteBuffers: byteBuffers, delimiter: delimiter)
+    /// - Parameter delimiter: Character separating segments of the input
+    /// - Returns: Segments segmented by the separator
+    public func segments(separatedBy separator: Character) -> Segments {
+      segments(separatedBy: "\(separator)")
     }
 
+    /// Segment this input using a separator.
+    ///
+    /// - Parameters:
+    ///   - separator: String separating segments of the input. Must not be empty
+    /// - Returns: Segments segmented by the separator
+    public func segments(separatedBy separator: String) -> Segments {
+      Segments(byteBuffers: byteBuffers, separator: separator)
+    }
     typealias ByteBuffers = AsyncCompactMapSequence<
       AsyncPrefixWhileSequence<AsyncInboundHandler<ByteBuffer>>, ByteBuffer
     >

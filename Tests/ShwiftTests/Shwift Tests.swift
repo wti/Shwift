@@ -65,22 +65,22 @@ final class ShwiftCoreTests: XCTestCase {
       of: { context, output in
         try await Builtin.pipe(
           { output in
-            try await Process.run("echo", "Foo;Bar;Baz", standardOutput: output, in: context)
+            try await Process.run("echo", "-n", "Foo;-Bar;Baz", standardOutput: output, in: context)
           },
           to: { input in
             try await Builtin.withChannel(input: input, output: output, in: context) { channel in
-              let count = try await channel.input
-                .segments(separatedBy: ";")
-                .reduce(into: 0, { count, _ in count += 1 })
-              try await channel.output.withTextOutputStream { stream in
-                print("\(count)", to: &stream)
+              for try await segment in channel.input.segments(separatedBy: ";-") {
+                try await channel.output.withTextOutputStream { stream in
+                  print(segment, to: &stream)
+                }
               }
             }
           }
         ).destination
       },
       is: """
-        3
+        Foo
+        Bar;Baz
         """)
   }
 
