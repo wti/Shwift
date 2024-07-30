@@ -1,5 +1,5 @@
 #if canImport(Darwin)
-  import Darwin
+  internal import Darwin
 
   /// Optionality of some times does not align in Darwin vs Glibc, so we make a typealias to allow us to refer to them consistently.
   private typealias PlatformType<U> = U?
@@ -34,7 +34,7 @@ enum PosixSpawn {
     var rawValue: Int32
   }
 
-  struct Attributes {
+  public struct Attributes {
 
     init() throws {
       try Errno.check(posix_spawnattr_init(&rawValue))
@@ -58,7 +58,7 @@ enum PosixSpawn {
     fileprivate var rawValue: PlatformType<posix_spawnattr_t> = .init()
   }
 
-  struct FileActions {
+  public struct FileActions {
 
     init() throws {
       try Errno.check(posix_spawn_file_actions_init(&rawValue))
@@ -102,7 +102,7 @@ enum PosixSpawn {
     environment: [String],
     fileActions: inout FileActions,
     attributes: inout Attributes
-  ) throws -> pid_t {
+  ) throws -> Int32 { // typealias pid_t = Int32 -- for now?
     var pid = pid_t()
 
     /// I'm not aware of a way to pass a string containing `NUL` to `posix_spawn`
@@ -136,7 +136,6 @@ enum PosixSpawn {
 // MARK: - Signals
 
 struct SignalSet {
-
   static var all: Self {
     get throws {
       try Self(sigfillset)
@@ -153,7 +152,7 @@ struct SignalSet {
     rawValue = sigset_t()
     try Errno.check(fn(&rawValue))
   }
-  var rawValue: sigset_t
+  fileprivate var rawValue: sigset_t
 }
 
 // MARK: - Support

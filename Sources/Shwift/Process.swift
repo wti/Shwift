@@ -1,4 +1,10 @@
+#if swift(>=6.0) || (swift(>=5.9) && hasFeature(AccessLevelOnImport))
+private import Darwin
+internal import NIO
+#else
+@_implementationOnly import Darwin
 @_implementationOnly import NIO
+#endif
 import SystemPackage
 
 /**

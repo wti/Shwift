@@ -2,7 +2,11 @@ import Shwift
 import Dispatch
 import SystemPackage
 
+#if swift(>=6.0) || (swift(>=5.9) && hasFeature(AccessLevelOnImport))
+private import Foundation
+#else
 @_implementationOnly import class Foundation.FileManager
+#endif
 
 /**
  We consider the following to be part of our public API

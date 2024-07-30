@@ -1,6 +1,12 @@
+#if swift(>=6.0) || (swift(>=5.9) && hasFeature(AccessLevelOnImport))
+internal import NIO
+private import _NIOConcurrency
+#else
 @_implementationOnly import NIO
-import SystemPackage
 @_implementationOnly import _NIOConcurrency
+#endif
+
+import SystemPackage
 
 /**
  A namespace for types involved in executing builtins
