@@ -19,9 +19,9 @@ extension NIOPipeBootstrap {
     do {
       let output = try outputDescriptor.duplicate()
       do {
-        return try await withPipes(
-          inputDescriptor: input.rawValue,
-          outputDescriptor: output.rawValue
+        return try await takingOwnershipOfDescriptors(
+          input: input.rawValue,
+          output: output.rawValue
         )
         .get()
         /**
