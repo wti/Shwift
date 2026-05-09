@@ -135,3 +135,29 @@ extension Shell {
   }
 
 }
+
+// MARK: Re-directing standard error to a file
+infix operator >-: TernaryPrecedence
+
+public func >- (source: Shell.PipableCommand<Void>, path: FilePath) async throws {
+  try await pipe(
+    .error,
+    of: { try? await source.body() },
+    to: {
+      try await Shell.invoke { shell, invocation in
+        let absolutePath = shell.workingDirectory.pushing(path)
+        try await Builtin.write(
+          invocation.standardInput,
+          to: absolutePath,
+          in: invocation.context)
+      }
+    }
+  ).destination
+}
+
+@_disfavoredOverload
+public func >- (source: Shell.PipableCommand<Void>, path: FilePath) -> Shell.PipableCommand<Void> {
+  Shell.PipableCommand {
+    try await source >- path
+  }
+}
